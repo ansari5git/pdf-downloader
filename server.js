@@ -37,13 +37,12 @@ app.post('/download-images', async (req, res) => {
     try {
         // 1) Launch Puppeteer
         browser = await puppeteer.launch({
-    headless: 'new',  // Use new headless mode
+    headless: 'new',
     args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',  // Prevent /dev/shm issues
-        '--single-process',          // Needed for resource-constrained environments
-        '--no-zygote'                // Disable zygote process
+        '--disable-dev-shm-usage',
+        '--single-process'
     ]
 });
         const page = await browser.newPage();
