@@ -1,8 +1,12 @@
-const express = require('express');
-const puppeteer = require('puppeteer');
-require("dotenv").config();
-const JSZip = require('jszip');
-const fetch = require('node-fetch');
+import express from 'express';
+
+import puppeteer from 'puppeteer';
+
+import { config } from 'dotenv';
+
+import JSZip from 'jszip';
+
+import fetch from 'node-fetch';
 
 const app = express();
 app.use(express.json());
