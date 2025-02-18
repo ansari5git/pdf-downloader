@@ -1,4 +1,4 @@
-# Use Puppeteer base image
+# Use Puppeteer official base image
 FROM ghcr.io/puppeteer/puppeteer:24.2.1
 
 # Set environment variables
@@ -14,10 +14,10 @@ COPY package*.json ./
 # Install dependencies
 RUN npm ci
 
-# Install Google Chrome manually
+# Install Google Chrome (Fixed)
 RUN apt-get update && apt-get install -y wget gnupg \
-    && wget -qO- https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
-    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | tee /etc/apt/sources.list.d/google-chrome.list \
+    && wget -qO - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor > /usr/share/keyrings/google-chrome-keyring.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/google-chrome-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | tee /etc/apt/sources.list.d/google-chrome.list \
     && apt-get update && apt-get install -y google-chrome-stable
 
 # Copy project files
