@@ -38,7 +38,7 @@ app.post('/download-images', async (req, res) => {
     try {
         // 1) Launch Puppeteer
         browser = await puppeteer.launch({
-            headless: new, // Keep false to see the browser
+            headless: "new", // Keep false to see the browser
             args: [
              '--no-sandbox',
              '--disable-setuid-sandbox',
