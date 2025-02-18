@@ -57,7 +57,10 @@ app.post('/download-images', async (req, res) => {
 
         // 2) Intercept requests to capture PDF page images
         let imageUrls = [];
+        await page.goto(previewUrl, { waitUntil: 'networkidle2' });
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Extra delay before interception
         await page.setRequestInterception(true);
+
         page.on('request', reqIntercept => {
             const url = reqIntercept.url();
             reqIntercept.continue(); // allow the request
@@ -97,7 +100,7 @@ app.post('/download-images', async (req, res) => {
             await page.mouse.wheel({
                 deltaY: 1000
             }); // Scroll down
-            await new Promise(resolve => setTimeout(resolve, 2500)); // Wait for images to load
+            await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000)); // 2-5 sec delay
 
             const currentCount = imageUrls.length;
             if (currentCount === lastCount) {
@@ -116,7 +119,7 @@ app.post('/download-images', async (req, res) => {
             }
 
             // Stop if there are no new images for 5 consecutive checks
-            if (stableIterations >= 5) {
+            if (stableIterations >= 10) {
                 console.log("No new images detected. Stopping scroll.");
                 break;
             }
