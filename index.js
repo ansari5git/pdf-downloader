@@ -147,7 +147,8 @@ app.post('/download-images', async (req, res) => {
         const zip = new JSZip();
         const imageFetchPromises = imageUrls.map(async (url, index) => {
             try {
-                const arrayBuffer = await resp.arrayBuffer();
+                const response = await fetch(url);
+                const arrayBuffer = await response.arrayBuffer();
         
                 const buf = Buffer.from(arrayBuffer);
                 zip.file(`page-${index + 1}.jpg`, buf); // Add the image to ZIP
