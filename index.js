@@ -39,6 +39,7 @@ app.post('/download-images', async (req, res) => {
         // 1) Launch Puppeteer
         browser = await puppeteer.launch({
             headless: "new", // Keep false to see the browser
+            executablePath: "/usr/bin/google-chrome-stable",
             args: [
              '--no-sandbox',
              '--disable-setuid-sandbox',
@@ -46,9 +47,7 @@ app.post('/download-images', async (req, res) => {
              '--disable-gpu',
              '--no-zygote'
             ],
-            executablePath: process.env.NODE_ENV === 'production' 
-              ? process.env.PUPPETEER_EXECUTABLE_PATH 
-              : puppeteer.executablePath(),
+      
         });
         const page = await browser.newPage();
 
