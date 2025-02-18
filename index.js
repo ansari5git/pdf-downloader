@@ -93,7 +93,7 @@ app.post('/download-images', async (req, res) => {
             await page.mouse.wheel({
                 deltaY: 1000
             }); // Scroll down
-            await page.waitForTimeout(2500); // Wait for images to load
+            await new Promise(resolve => setTimeout(resolve, 2500)); // Wait for images to load
 
             const currentCount = imageUrls.length;
             if (currentCount === lastCount) {
