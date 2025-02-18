@@ -1,5 +1,6 @@
 const express = require('express');
 const puppeteer = require('puppeteer');
+require("dotenv").config();
 const JSZip = require('jszip');
 const fetch = require('node-fetch');
 
@@ -37,9 +38,17 @@ app.post('/download-images', async (req, res) => {
     try {
         // 1) Launch Puppeteer
         browser = await puppeteer.launch({
-            headless: false, // Keep false to see the browser
-            executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
+            headless: new, // Keep false to see the browser
+            args: [
+             '--no-sandbox',
+             '--disable-setuid-sandbox',
+             '--disable-dev-shm-usage',
+             '--disable-gpu',
+             '--no-zygote'
+            ],
+            executablePath: process.env.NODE_ENV === 'production' 
+              ? process.env.PUPPETEER_EXECUTABLE_PATH 
+              : puppeteer.executablePath(),
         });
         const page = await browser.newPage();
 
