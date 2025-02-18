@@ -42,7 +42,7 @@ app.post('/download-images', async (req, res) => {
     try {
         // 1) Launch Puppeteer
         browser = await puppeteer.launch({
-            headless: false, // Keep false to see the browser
+            headless: "new", // Keep false to see the browser
             executablePath: "/usr/bin/google-chrome-stable",
             args: [
              '--no-sandbox',
