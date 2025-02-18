@@ -37,14 +37,10 @@ app.post('/download-images', async (req, res) => {
     try {
         // 1) Launch Puppeteer
         browser = await puppeteer.launch({
-    headless: 'new',
-    args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--single-process'
-    ]
-});
+            headless: false, // Keep false to see the browser
+            executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        });
         const page = await browser.newPage();
 
         // 2) Intercept requests to capture PDF page images
