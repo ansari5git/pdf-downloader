@@ -47,7 +47,7 @@ async function extractPdfImages(pdfUrl) {
     const page = await browser.newPage();
 
     // Visit the preview page
-    await page.goto(previewUrl, { waitUntil: 'networkidle2' });
+    await page.goto(previewUrl, { waitUntil: 'networkidle2', timeout: 0 });
     await new Promise(resolve => setTimeout(resolve, 3000)); // Extra delay to ensure images start loading
 
     // Enable request interception
