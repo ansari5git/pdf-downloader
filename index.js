@@ -6,6 +6,9 @@ import { PDFDocument } from 'pdf-lib'; // (NEW) for building a PDF from images
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+// Simple cache: fileId -> array of Buffers (each buffer is one page image)
+const imageCache = new Map();
+
 // (NEW) Handle __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -121,6 +124,7 @@ app.post('/extract-images', async (req, res) => {
     const buffers = await extractPdfImages(pdfUrl);
     // Convert Buffers to base64 so front-end can display <img src="data:image/jpeg;base64,...">
     const base64Images = buffers.map(buf => buf.toString('base64'));
+    imageCache.set(fileId, buffers);
     res.json({ images: base64Images });
   } catch (err) {
     console.error(err);
@@ -136,7 +140,20 @@ app.get('/download-zip', async (req, res) => {
   }
 
   try {
-    const buffers = await extractPdfImages(pdfUrl);
+    // 1) Check cache
+    
+    let buffers = imageCache.get(fileId);
+
+
+    
+    // 2) If not cached, run Puppeteer
+    
+    if (!buffers) {
+      
+      buffers = await extractPdfImages(pdfUrl);
+      
+      imageCache.set(fileId, buffers);
+      }
 
     const zip = new JSZip();
     buffers.forEach((buf, idx) => {
@@ -161,7 +178,21 @@ app.get('/download-pdf', async (req, res) => {
   }
 
   try {
-    const buffers = await extractPdfImages(pdfUrl);
+    // 1) Check if we already have images in the cache
+    
+    let buffers = imageCache.get(fileId);
+
+   
+ 
+    // 2) If not cached, re-run Puppeteer
+    
+    if (!buffers) {
+      
+      buffers = await extractPdfImages(pdfUrl);
+      
+      imageCache.set(fileId, buffers);
+    
+      }
 
     // Use pdf-lib to build a PDF from the extracted images
     const pdfDoc = await PDFDocument.create();
