@@ -94,7 +94,6 @@ async function extractPdfImages(pdfUrl) {
     for (const url of uniqueUrls) {
       try {
         const response = await fetch(url);
-        console.log("Content-Type:", response.headers.get('content-type'));
         const arrayBuffer = await response.arrayBuffer();
         buffers.push(Buffer.from(arrayBuffer));
       } catch (err) {
@@ -166,13 +165,13 @@ app.get('/download-pdf', async (req, res) => {
     // Use pdf-lib to build a PDF from the extracted images
     const pdfDoc = await PDFDocument.create();
     for (const buf of buffers) {
-      const jpgImage = await pdfDoc.embedJpg(buf);
-      const page = pdfDoc.addPage([jpgImage.width, jpgImage.height]);
-      page.drawImage(jpgImage, {
+      const pngImage = await pdfDoc.embedPng(buf);
+      const page = pdfDoc.addPage([pngImage.width, pngImage.height]);
+      page.drawImage(pngImage, {
         x: 0,
         y: 0,
-        width: jpgImage.width,
-        height: jpgImage.height,
+        width: pngImage.width,
+        height: pngImage.height,
       });
     }
 
