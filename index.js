@@ -94,6 +94,7 @@ async function extractPdfImages(pdfUrl) {
     for (const url of uniqueUrls) {
       try {
         const response = await fetch(url);
+        console.log("Content-Type:", response.headers.get('content-type'));
         const arrayBuffer = await response.arrayBuffer();
         buffers.push(Buffer.from(arrayBuffer));
       } catch (err) {
