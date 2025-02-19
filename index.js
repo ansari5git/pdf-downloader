@@ -124,6 +124,7 @@ app.post('/extract-images', async (req, res) => {
     const buffers = await extractPdfImages(pdfUrl);
     // Convert Buffers to base64 so front-end can display <img src="data:image/jpeg;base64,...">
     const base64Images = buffers.map(buf => buf.toString('base64'));
+    const fileId = extractFileId(pdfUrl);
     imageCache.set(fileId, buffers);
     res.json({ images: base64Images });
   } catch (err) {
