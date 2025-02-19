@@ -70,6 +70,7 @@ async function extractPdfImages(pdfUrl) {
     let stableIterations = 0;
     let maxScrolls = 200;
     while (stableIterations < 5 && maxScrolls > 0) {
+      console.log(`Scrolling... Current captured images: ${imageUrls.length}`);
       await page.mouse.wheel({ deltaY: 1000 });
       await new Promise(r => setTimeout(r, 2000)); // Wait a bit after each scroll
 
