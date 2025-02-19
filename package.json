@@ -16,6 +16,7 @@
     "express": "^4.21.2",
     "jszip": "^3.10.1",
     "node-fetch": "^3.3.2",
+    "pdf-lib": "^1.17.1",
     "puppeteer": "^24.2.1"
   }
 }

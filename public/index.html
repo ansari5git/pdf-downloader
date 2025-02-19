@@ -1,0 +1,31 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>GDrive PDF Image Downloader</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>GDrive PDF Image Downloader</h1>
+
+    <!-- Input for PDF URL -->
+    <div class="input-section">
+      <label for="pdfUrl">Enter Shared GDrive PDF Link:</label>
+      <input type="text" id="pdfUrl" placeholder="https://drive.google.com/file/d/..." />
+      <button id="fetchPagesBtn">Fetch Pages</button>
+    </div>
+
+    <!-- Thumbnails will appear here -->
+    <div id="thumbnails" class="thumbnails-grid"></div>
+
+    <!-- Download buttons (hidden until images load) -->
+    <div id="downloadOptions" style="display:none;">
+      <button id="downloadZipBtn">Download as ZIP</button>
+      <button id="downloadPdfBtn">Download as PDF</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

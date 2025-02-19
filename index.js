@@ -1,193 +1,192 @@
 import express from 'express';
-
 import puppeteer from 'puppeteer';
-
-import { config } from 'dotenv';
-
 import JSZip from 'jszip';
-
 import fetch from 'node-fetch';
+import { PDFDocument } from 'pdf-lib'; // (NEW) for building a PDF from images
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// (NEW) Handle __dirname in ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
-app.use(express.urlencoded({
-    extended: true
-}));
+app.use(express.urlencoded({ extended: true }));
 
-// Simple form for demonstration
-app.get('/', (req, res) => {
-    res.send(`
-    <h1>GDrive PDF Image Downloader (Fixed Version)</h1>
-    <form method="POST" action="/download-images">
-      <label>Enter Shared GDrive PDF Link:</label><br/>
-      <input type="text" name="pdfUrl" style="width:400px"/>
-      <button type="submit">Download Images</button>
-    </form>
-  `);
-});
+// (NEW) Serve static files (index.html, style.css, script.js) from /public
+app.use(express.static(path.join(__dirname, 'public')));
 
-app.post('/download-images', async (req, res) => {
-    const pdfUrl = req.body.pdfUrl || "";
-    const fileId = extractFileId(pdfUrl);
-
-    // Validate the Google Drive link
-    if (!fileId) {
-        return res.send("Invalid Google Drive link or File ID not found.");
-    }
-
-    // Construct the 'preview' URL
-    const previewUrl = `https://drive.google.com/file/d/${fileId}/preview`;
-
-    let browser;
-    try {
-        // 1) Launch Puppeteer
-        browser = await puppeteer.launch({
-            headless: "new", // Keep false to see the browser
-            executablePath: "/usr/bin/google-chrome-stable",
-            args: [
-             '--no-sandbox',
-             '--disable-setuid-sandbox',
-             '--disable-dev-shm-usage',
-             '--disable-gpu',
-             '--no-zygote'
-            ],
-      
-        });
-        const page = await browser.newPage();
-
-        // 2) Intercept requests to capture PDF page images
-        let imageUrls = [];
-        await page.goto(previewUrl, { waitUntil: 'networkidle2' });
-        await new Promise(resolve => setTimeout(resolve, 3000)); // Extra delay before interception
-        await page.setRequestInterception(true);
-
-        page.on('request', reqIntercept => {
-            const url = reqIntercept.url();
-            reqIntercept.continue(); // allow the request
-
-            if (/drive\.google\.com\/viewer2\/prod-\d+\/img/.test(url)) {
-                const pageMatch = url.match(/page=(\d+)/);
-                const pageNum = pageMatch ? parseInt(pageMatch[1], 10) : -1;
-
-                // Only proceed if pageNum is valid
-                if (pageNum < 0) return;
-
-                // For the first 3 pages, allow only the first image (no duplicates)
-                if (pageNum < 3) {
-                    if (!imageUrls.some(url => url.includes(`page=${pageNum}`))) {
-                        imageUrls.push(url);
-                    }
-                } else {
-                    // For the rest, store all images or compare for resolution
-                    imageUrls.push(url);
-                }
-            }
-        });
-
-        // 3) Open the PDF preview page
-        await page.goto(previewUrl, {
-            waitUntil: 'networkidle2'
-        });
-
-        // 4) Scroll until all images are captured
-        let lastCount = 0;
-        let stableIterations = 0;
-        let maxScrolls = 200; // Safety limit to prevent infinite loops
-
-        while (stableIterations < 5 && maxScrolls > 0) {
-            console.log(`Scrolling... Current captured images: ${imageUrls.length}`);
-
-            await page.mouse.wheel({
-                deltaY: 1000
-            }); // Scroll down
-            await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000)); // 2-5 sec delay
-
-            const currentCount = imageUrls.length;
-            if (currentCount === lastCount) {
-                stableIterations++; // No new images => Increment counter
-            } else {
-                stableIterations = 0; // Reset if new images are found
-                lastCount = currentCount;
-            }
-
-            maxScrolls--; // Prevent infinite loops
-
-            // If scroll limit reached but still images are being captured, reset and continue
-            if (maxScrolls <= 0 && stableIterations < 5) {
-                console.log("Max scroll attempts reached, retrying to capture remaining images...");
-                maxScrolls = 100; // Reset max scroll attempts for recovery
-            }
-
-            // Stop if there are no new images for 5 consecutive checks
-            if (stableIterations >= 10) {
-                console.log("No new images detected. Stopping scroll.");
-                break;
-            }
-        }
-
-        console.log(`Total Images Captured: ${imageUrls.length}`);
-
-        // Remove duplicate URLs while preserving order
-        const uniqueImageUrls = [];
-        const seen = new Set();
-
-        for (const url of imageUrls) {
-            if (!seen.has(url)) {
-                seen.add(url);
-                uniqueImageUrls.push(url);
-            }
-        }
-
-        imageUrls = uniqueImageUrls;
-        console.log(`Total Unique Images Captured: ${imageUrls.length}`);
-
-        if (!imageUrls.length) {
-            console.error("No images found. PDF might not have fully loaded.");
-            return res.send("No page images found. Try increasing wait time.");
-        }
-
-        // 5) Fetch each image & put it in a ZIP
-        const zip = new JSZip();
-        const imageFetchPromises = imageUrls.map(async (url, index) => {
-            try {
-                const response = await fetch(url);
-                const arrayBuffer = await response.arrayBuffer();
-        
-                const buf = Buffer.from(arrayBuffer);
-                zip.file(`page-${index + 1}.jpg`, buf); // Add the image to ZIP
-            } catch (err) {
-                console.error("Failed to fetch image:", url, err);
-            }
-        });
-
-        // Wait for all image fetches to complete concurrently
-        await Promise.all(imageFetchPromises);
-
-
-        // 6) Send the ZIP file to the user
-        const zipContent = await zip.generateAsync({
-            type: 'nodebuffer'
-        });
-        res.setHeader('Content-Disposition', 'attachment; filename="pdf-images.zip"');
-        res.setHeader('Content-Type', 'application/zip');
-        res.send(zipContent);
-
-    } catch (err) {
-        console.error(err);
-        return res.send("An error occurred while processing the PDF.");
-    } finally {
-        if (browser) {
-            await browser.close();
-        }
-    }
-});
-
+// (UNCHANGED) Helper function to extract GDrive file ID
 function extractFileId(url) {
-    const match = url.match(/[-\w]{25,}/);
-    return match ? match[0] : null;
+  const match = url.match(/[-\w]{25,}/);
+  return match ? match[0] : null;
 }
 
+// (NEW) Encapsulated Puppeteer logic into a helper function
+async function extractPdfImages(pdfUrl) {
+  const fileId = extractFileId(pdfUrl);
+  if (!fileId) throw new Error("Invalid Google Drive link or File ID not found.");
+
+  const previewUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+  let browser;
+  let imageUrls = [];
+
+  try {
+    browser = await puppeteer.launch({
+    executablePath: '/usr/bin/google-chrome-stable',
+      headless: 'new',
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-zygote',
+      ],
+    });
+    const page = await browser.newPage();
+
+    // Visit the preview page
+    await page.goto(previewUrl, { waitUntil: 'networkidle2' });
+    await new Promise(resolve => setTimeout(resolve, 3000)); // Extra delay to ensure images start loading
+
+    // Enable request interception
+    await page.setRequestInterception(true);
+    page.on('request', (reqIntercept) => {
+      const url = reqIntercept.url();
+      reqIntercept.continue();
+
+      // Check if this request is a PDF page image
+      if (/drive\.google\.com\/viewer2\/prod-\d+\/img/.test(url)) {
+        imageUrls.push(url);
+      }
+    });
+
+    // Reload the preview page so interception is active
+    await page.goto(previewUrl, { waitUntil: 'networkidle2' });
+
+    // Scroll to load all page images
+    let lastCount = 0;
+    let stableIterations = 0;
+    let maxScrolls = 200;
+    while (stableIterations < 5 && maxScrolls > 0) {
+      await page.mouse.wheel({ deltaY: 1000 });
+      await new Promise(r => setTimeout(r, 2000)); // Wait a bit after each scroll
+
+      const currentCount = imageUrls.length;
+      if (currentCount === lastCount) {
+        stableIterations++;
+      } else {
+        stableIterations = 0;
+        lastCount = currentCount;
+      }
+      maxScrolls--;
+    }
+
+    // Remove duplicates
+    const uniqueUrls = [...new Set(imageUrls)];
+    if (!uniqueUrls.length) {
+      throw new Error("No page images found. Try increasing wait time.");
+    }
+
+    // Fetch each image as a Buffer
+    const buffers = [];
+    for (const url of uniqueUrls) {
+      try {
+        const response = await fetch(url);
+        const arrayBuffer = await response.arrayBuffer();
+        buffers.push(Buffer.from(arrayBuffer));
+      } catch (err) {
+        console.error("Failed to fetch image:", url, err);
+      }
+    }
+
+    return buffers; // Each Buffer represents a page image
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
+  }
+}
+
+// ======= ROUTE 1: Extract images & return base64 for thumbnail preview =======
+app.post('/extract-images', async (req, res) => {
+  const { pdfUrl } = req.body;
+  if (!pdfUrl) {
+    return res.json({ error: "No PDF URL provided." });
+  }
+
+  try {
+    const buffers = await extractPdfImages(pdfUrl);
+    // Convert Buffers to base64 so front-end can display <img src="data:image/jpeg;base64,...">
+    const base64Images = buffers.map(buf => buf.toString('base64'));
+    res.json({ images: base64Images });
+  } catch (err) {
+    console.error(err);
+    res.json({ error: err.message || "Failed to extract images." });
+  }
+});
+
+// ======= ROUTE 2: Download a ZIP of all extracted images =======
+app.get('/download-zip', async (req, res) => {
+  const pdfUrl = req.query.pdfUrl || "";
+  if (!pdfUrl) {
+    return res.send("No PDF URL provided.");
+  }
+
+  try {
+    const buffers = await extractPdfImages(pdfUrl);
+
+    const zip = new JSZip();
+    buffers.forEach((buf, idx) => {
+      zip.file(`page-${idx + 1}.jpg`, buf);
+    });
+
+    const zipContent = await zip.generateAsync({ type: 'nodebuffer' });
+    res.setHeader('Content-Disposition', 'attachment; filename="pdf-images.zip"');
+    res.setHeader('Content-Type', 'application/zip');
+    res.send(zipContent);
+  } catch (err) {
+    console.error(err);
+    res.send("Error generating ZIP: " + err.message);
+  }
+});
+
+// ======= ROUTE 3: Download a new PDF containing all extracted images =======
+app.get('/download-pdf', async (req, res) => {
+  const pdfUrl = req.query.pdfUrl || "";
+  if (!pdfUrl) {
+    return res.send("No PDF URL provided.");
+  }
+
+  try {
+    const buffers = await extractPdfImages(pdfUrl);
+
+    // Use pdf-lib to build a PDF from the extracted images
+    const pdfDoc = await PDFDocument.create();
+    for (const buf of buffers) {
+      const jpgImage = await pdfDoc.embedJpg(buf);
+      const page = pdfDoc.addPage([jpgImage.width, jpgImage.height]);
+      page.drawImage(jpgImage, {
+        x: 0,
+        y: 0,
+        width: jpgImage.width,
+        height: jpgImage.height,
+      });
+    }
+
+    const pdfBytes = await pdfDoc.save();
+    res.setHeader('Content-Disposition', 'attachment; filename="pdf-images.pdf"');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.send(Buffer.from(pdfBytes));
+  } catch (err) {
+    console.error(err);
+    res.send("Error generating PDF: " + err.message);
+  }
+});
+
+// ======= START THE SERVER =======
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+  console.log(`Server running at http://localhost:${PORT}`);
 });
