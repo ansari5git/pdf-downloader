@@ -6,7 +6,7 @@ import { PDFDocument } from 'pdf-lib'; // (NEW) for building a PDF from images
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Simple cache: fileId -> array of Buffers (each buffer is one page image)
+// Simple cache images: fileId -> array of Buffers (each buffer is one page image)
 const imageCache = new Map();
 
 // (NEW) Handle __dirname in ES Modules
