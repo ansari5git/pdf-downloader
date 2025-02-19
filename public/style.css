@@ -35,3 +35,37 @@ body {
   border: 1px solid #ccc;
   border-radius: 4px;
 }
+
+.skeleton {
+  
+  width: 150px;
+  
+  height: 200px;
+  
+  background: #eee;
+  
+  border: 1px solid #ccc;
+  
+  border-radius: 4px;
+  
+  position: relative;
+
+}
+
+
+
+.loading-bar {
+  
+  position: absolute;
+  
+  bottom: 0; left: 0;
+  
+  height: 4px;
+  
+  background: #333;
+  
+  width: 0%;
+  
+  transition: width 0.5s;
+
+}
