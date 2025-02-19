@@ -135,6 +135,7 @@ app.post('/extract-images', async (req, res) => {
 // ======= ROUTE 2: Download a ZIP of all extracted images =======
 app.get('/download-zip', async (req, res) => {
   const pdfUrl = req.query.pdfUrl || "";
+  const fileId = extractFileId(pdfUrl);
   if (!pdfUrl) {
     return res.send("No PDF URL provided.");
   }
@@ -173,6 +174,7 @@ app.get('/download-zip', async (req, res) => {
 // ======= ROUTE 3: Download a new PDF containing all extracted images =======
 app.get('/download-pdf', async (req, res) => {
   const pdfUrl = req.query.pdfUrl || "";
+  const fileId = extractFileId(pdfUrl);
   if (!pdfUrl) {
     return res.send("No PDF URL provided.");
   }
