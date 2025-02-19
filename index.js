@@ -56,14 +56,25 @@ async function extractPdfImages(pdfUrl) {
     // Enable request interception
     await page.setRequestInterception(true);
     page.on('request', (reqIntercept) => {
-      const url = reqIntercept.url();
-      reqIntercept.continue();
+  const url = reqIntercept.url();
+  reqIntercept.continue();
 
-      // Check if this request is a PDF page image
-      if (/drive\.google\.com\/viewer2\/prod-\d+\/img/.test(url)) {
+  if (/drive\.google\.com\/viewer2\/prod-\d+\/img/.test(url)) {
+    const match = url.match(/page=(\d+)/);
+    const pageNum = match ? parseInt(match[1], 10) : -1;
+    if (pageNum < 0) return;
+
+    // For the first 3 pages, only store the first image
+    if (pageNum < 3) {
+      if (!imageUrls.some(existingUrl => existingUrl.includes(`page=${pageNum}`))) {
         imageUrls.push(url);
       }
-    });
+    } else {
+      // For the rest, store all
+      imageUrls.push(url);
+    }
+  }
+});
 
     // Reload the preview page so interception is active
     await page.goto(previewUrl, { waitUntil: 'networkidle2' });
