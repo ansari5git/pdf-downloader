@@ -119,6 +119,7 @@ async function processQueue() {
     processQueue();
   }
 }
+});
 
 // 2. Download as ZIP
 document.getElementById('downloadZipBtn').addEventListener('click', () => {
