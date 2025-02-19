@@ -144,6 +144,119 @@ app.post('/extract-images', async (req, res) => {
   }
 });
 
+/* ------------------------------------------------------------------
+   2) NEW ROUTE: GET /extract-images-sse
+      Streams each image in real time (SSE), storing them in cache.
+------------------------------------------------------------------ */
+app.get('/extract-images-sse', async (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  const pdfUrl = req.query.pdfUrl || '';
+  const fileId = extractFileId(pdfUrl);
+  if (!fileId) {
+    res.write(`data: ${JSON.stringify({ error: 'Invalid or missing PDF URL' })}\n\n`);
+    return res.end();
+  }
+
+  let browser;
+  // We'll store the final Buffers here
+  const buffers = [];
+
+  try {
+    const previewUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+
+    browser = await puppeteer.launch({
+      executablePath: '/usr/bin/google-chrome-stable',
+      headless: 'new',
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-zygote',
+      ],
+    });
+    const page = await browser.newPage();
+
+    // For first-3-pages logic, we track page->first image
+    const firstThreeStored = new Set(); // store pageNums for which we've saved an image
+
+    await page.setRequestInterception(true);
+    page.on('request', async (reqIntercept) => {
+      const url = reqIntercept.url();
+      reqIntercept.continue();
+
+      if (/drive\.google\.com\/viewer2\/prod-\d+\/img/.test(url)) {
+        try {
+          // Parse page number
+          const match = url.match(/page=(\d+)/);
+          const pageNum = match ? parseInt(match[1], 10) : -1;
+          if (pageNum < 0) return;
+
+          // For first 3 pages, only store the first image
+          if (pageNum < 3) {
+            if (firstThreeStored.has(pageNum)) {
+              return; // skip
+            } else {
+              firstThreeStored.add(pageNum);
+            }
+          }
+          // Now fetch the image data
+          const resp = await fetch(url);
+          const ab = await resp.arrayBuffer();
+          const buf = Buffer.from(ab);
+
+          // Add to our buffers
+          buffers.push(buf);
+
+          // Send SSE event with base64
+          const base64 = buf.toString('base64');
+          res.write(`data: ${JSON.stringify({ type: 'imageFound', base64 })}\n\n`);
+        } catch (err) {
+          console.error('Failed to fetch image data:', err);
+        }
+      }
+    });
+
+    // Navigate to preview
+    await page.goto(previewUrl, { waitUntil: 'networkidle2', timeout: 0 });
+
+    // Scroll logic
+    let lastCount = 0;
+    let stableIterations = 0;
+    let maxScrolls = 200;
+    while (stableIterations < 5 && maxScrolls > 0) {
+      await page.mouse.wheel({ deltaY: 1000 });
+      await new Promise(r => setTimeout(r, 2000));
+      if (buffers.length === lastCount) {
+        stableIterations++;
+      } else {
+        stableIterations = 0;
+        lastCount = buffers.length;
+      }
+      maxScrolls--;
+    }
+
+    // Done: store in cache
+    imageCache.set(fileId, buffers);
+
+    // Send "done" event
+    res.write(`data: ${JSON.stringify({ type: 'done', total: buffers.length })}\n\n`);
+    res.end();
+  } catch (err) {
+    console.error(err);
+    res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+    res.end();
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
+  }
+});
+
+
 // ======= ROUTE 2: Download a ZIP of all extracted images =======
 app.get('/download-zip', async (req, res) => {
   const pdfUrl = req.query.pdfUrl || "";
