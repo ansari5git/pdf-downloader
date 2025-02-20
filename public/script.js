@@ -49,6 +49,12 @@ document.getElementById('fetchPagesBtn').addEventListener('click', async () => {
   }
 }); */
 
+// Show loading message (before first image arrives)
+  
+const loadingMessage = document.getElementById('loadingMessage');
+  
+loadingMessage.style.display = 'block';
+
 // Open SSE connection
 const sseUrl = `/extract-images-sse?pdfUrl=${encodeURIComponent(pdfUrl)}`;
 const evtSource = new EventSource(sseUrl);
@@ -56,11 +62,19 @@ const evtSource = new EventSource(sseUrl);
 // We'll store incoming base64 images in a queue
 let loadingNext = false;
 const queue = [];
+let firstImageArrived = false;
 
 evtSource.onmessage = (event) => {
   const data = JSON.parse(event.data);
 
   if (data.type === 'imageFound') {
+    if (!firstImageArrived) {
+        
+      firstImageArrived = true;
+        
+      loadingMessage.style.display = 'none';
+      
+    }
     // We got a new base64 image
     queue.push(data.base64);
     processQueue();
@@ -68,6 +82,14 @@ evtSource.onmessage = (event) => {
   else if (data.type === 'done') {
     console.log('All images found. total =', data.total);
     evtSource.close();
+
+// Hide loading message if no images arrived
+      
+  if (!firstImageArrived) {
+        
+    loadingMessage.style.display = 'none';
+      
+  }
 
     if (data.total > 0) {
       // Show download buttons if at least 1 page
@@ -78,6 +100,9 @@ evtSource.onmessage = (event) => {
     console.error('SSE error:', data.error);
     evtSource.close();
     alert(data.error);
+    // Hide loading message on error
+      
+    loadingMessage.style.display = 'none';
   }
 };
 
