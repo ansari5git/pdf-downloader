@@ -157,13 +157,14 @@ input::placeholder {
 }
 
 .skeleton {
-  width: 180px;
-  height: 240px;
+  width: 100%;
+  /*height: 240px;*/
   background: var(--glass-bg);
   border-radius: 12px;
   position: relative;
   overflow: hidden;
-  animation: pulse 1.5s infinite;
+  animation: pulse 1.9s infinite;
+  min-height: 240px;
 }
 
 @keyframes pulse {
