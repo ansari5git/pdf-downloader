@@ -28,6 +28,9 @@ function extractFileId(url) {
 
 // (NEW) Encapsulated Puppeteer logic into a helper function
 async function extractPdfImages(pdfUrl) {
+  // ADDED: Log the start of extraction
+  
+  console.log("[extractPdfImages] Starting PDF image extraction for:", pdfUrl);
   const fileId = extractFileId(pdfUrl);
   if (!fileId) throw new Error("Invalid Google Drive link or File ID not found.");
 
@@ -36,6 +39,9 @@ async function extractPdfImages(pdfUrl) {
   let imageUrls = [];
 
   try {
+    // ADDED: Indicate Puppeteer is launching
+    
+    console.log("[extractPdfImages] Launching Puppeteer...");
     browser = await puppeteer.launch({
     executablePath: '/usr/bin/google-chrome-stable',
       headless: 'new',
@@ -67,6 +73,9 @@ async function extractPdfImages(pdfUrl) {
     // For the first 3 pages, only store the first image
     if (pageNum < 3) {
       if (!imageUrls.some(existingUrl => existingUrl.includes(`page=${pageNum}`))) {
+        // ADDED: Log when we store first 3 pages
+            
+        console.log(`[extractPdfImages] Storing first image for page ${pageNum}:`, url);
         imageUrls.push(url);
       }
     } else {
@@ -77,6 +86,7 @@ async function extractPdfImages(pdfUrl) {
 });
 
     // Reload the preview page so interception is active
+    console.log("[extractPdfImages] Reloading preview page..."); // ADDED
     await page.goto(previewUrl, { waitUntil: 'networkidle2' });
 
     // Scroll to load all page images
@@ -104,6 +114,10 @@ async function extractPdfImages(pdfUrl) {
       throw new Error("No page images found. Try increasing wait time.");
     }
 
+    // ADDED: Log how many unique URLs found
+    
+    console.log("[extractPdfImages] Unique image URLs found:", uniqueUrls.length);
+
     // Fetch each image as a Buffer
     const buffers = [];
     for (const url of uniqueUrls) {
@@ -116,9 +130,16 @@ async function extractPdfImages(pdfUrl) {
       }
     }
 
+    // ADDED: Log how many buffers were finally collected
+    
+    console.log("[extractPdfImages] Total buffers fetched:", buffers.length);
+
     return buffers; // Each Buffer represents a page image
   } finally {
     if (browser) {
+      // ADDED: Indicate browser closing
+      
+      console.log("[extractPdfImages] Closing Puppeteer browser...");
       await browser.close();
     }
   }
@@ -131,12 +152,21 @@ app.post('/extract-images', async (req, res) => {
     return res.json({ error: "No PDF URL provided." });
   }
 
+// ADDED: Log that user requested bulk extraction
+  
+console.log("[POST /extract-images] User requested extraction for:", pdfUrl);
+
   try {
     const buffers = await extractPdfImages(pdfUrl);
     // Convert Buffers to base64 so front-end can display <img src="data:image/jpeg;base64,...">
     const base64Images = buffers.map(buf => buf.toString('base64'));
     const fileId = extractFileId(pdfUrl);
     imageCache.set(fileId, buffers);
+
+    // ADDED: Log success + number of images
+    
+    console.log(`[POST /extract-images] Extraction success. Storing ${buffers.length} images in cache. FileID: ${fileId}`);
+
     res.json({ images: base64Images });
   } catch (err) {
     console.error(err);
@@ -160,12 +190,20 @@ app.get('/extract-images-sse', async (req, res) => {
     return res.end();
   }
 
+  // ADDED: Log SSE route start
+  
+  console.log("[GET /extract-images-sse] SSE route triggered. PDF URL:", pdfUrl);
+
   let browser;
   // We'll store the final Buffers here
   const buffers = [];
 
   try {
     const previewUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+
+    // ADDED: Indicate Puppeteer launching for SSE
+    
+    console.log("[GET /extract-images-sse] Launching Puppeteer for SSE...");
 
     browser = await puppeteer.launch({
       executablePath: '/usr/bin/google-chrome-stable',
@@ -200,8 +238,15 @@ app.get('/extract-images-sse', async (req, res) => {
             if (firstThreeStored.has(pageNum)) {
               return; // skip
             } else {
+              // ADDED: Log storing first image for SSE
+              
+              console.log(`[GET /extract-images-sse] Storing first image for page ${pageNum}:`, url);
               firstThreeStored.add(pageNum);
             }
+          } else {
+            // ADDED: Log storing subsequent pages
+            
+            console.log(`[GET /extract-images-sse] Storing image for page ${pageNum}:`, url);
           }
           // Now fetch the image data
           const resp = await fetch(url);
@@ -241,6 +286,10 @@ app.get('/extract-images-sse', async (req, res) => {
 
     // Done: store in cache
     imageCache.set(fileId, buffers);
+  
+    // ADDED: Log SSE completion
+    
+    console.log(`[GET /extract-images-sse] SSE extraction complete. Total images: ${buffers.length}. Storing in cache.`);
 
     // Send "done" event
     res.write(`data: ${JSON.stringify({ type: 'done', total: buffers.length })}\n\n`);
@@ -251,6 +300,7 @@ app.get('/extract-images-sse', async (req, res) => {
     res.end();
   } finally {
     if (browser) {
+      console.log("[GET /extract-images-sse] Closing Puppeteer browser for SSE route..."); // ADDED
       await browser.close();
     }
   }
@@ -265,6 +315,10 @@ app.get('/download-zip', async (req, res) => {
     return res.send("No PDF URL provided.");
   }
 
+  // ADDED: Log that user requested ZIP download
+  
+  console.log("[GET /download-zip] User requested ZIP for PDF URL:", pdfUrl);
+
   try {
     // 1) Check cache
     
@@ -275,10 +329,15 @@ app.get('/download-zip', async (req, res) => {
     // 2) If not cached, run Puppeteer
     
     if (!buffers) {
-      
+ 
+      console.log("[GET /download-zip] No cache found. Extracting images..."); // ADDED     
       buffers = await extractPdfImages(pdfUrl);
       
       imageCache.set(fileId, buffers);
+      } else {
+        // ADDED: Using cached images
+      
+        console.log(`[GET /download-zip] Using cached images. Count: ${buffers.length}`);
       }
 
     const zip = new JSZip();
@@ -286,10 +345,19 @@ app.get('/download-zip', async (req, res) => {
       zip.file(`page-${idx + 1}.jpg`, buf);
     });
 
+    // ADDED: Indicate building ZIP
+    
+    console.log(`[GET /download-zip] Building ZIP with ${buffers.length} images...`);
     const zipContent = await zip.generateAsync({ type: 'nodebuffer' });
+
+    // ADDED: Sending ZIP to user
+    
+    console.log("[GET /download-zip] Sending ZIP file to user...");
     res.setHeader('Content-Disposition', 'attachment; filename="pdf-images.zip"');
     res.setHeader('Content-Type', 'application/zip');
     res.send(zipContent);
+
+    console.log("[GET /download-zip] ZIP download complete.");
   } catch (err) {
     console.error(err);
     res.send("Error generating ZIP: " + err.message);
@@ -304,6 +372,10 @@ app.get('/download-pdf', async (req, res) => {
     return res.send("No PDF URL provided.");
   }
 
+  // ADDED: Log user requested PDF download
+  
+  console.log("[GET /download-pdf] User requested PDF for:", pdfUrl);
+
   try {
     // 1) Check if we already have images in the cache
     
@@ -314,15 +386,22 @@ app.get('/download-pdf', async (req, res) => {
     // 2) If not cached, re-run Puppeteer
     
     if (!buffers) {
-      
+
+      console.log("[GET /download-pdf] No cache found. Extracting images..."); // ADDED      
       buffers = await extractPdfImages(pdfUrl);
       
       imageCache.set(fileId, buffers);
+    
+      } else {
+     // ADDED: Using cached images for PDF
+      
+     console.log(`[GET /download-pdf] Using cached images. Count: ${buffers.length}`);
     
       }
 
     // Use pdf-lib to build a PDF from the extracted images
     const pdfDoc = await PDFDocument.create();
+    console.log(`[GET /download-pdf] Building PDF with ${buffers.length} images...`); // ADDED
     for (const buf of buffers) {
       const pngImage = await pdfDoc.embedPng(buf);
       const page = pdfDoc.addPage([pngImage.width, pngImage.height]);
@@ -335,9 +414,12 @@ app.get('/download-pdf', async (req, res) => {
     }
 
     const pdfBytes = await pdfDoc.save();
+    console.log("[GET /download-pdf] PDF generation complete. Sending to user..."); // ADDED
     res.setHeader('Content-Disposition', 'attachment; filename="pdf-images.pdf"');
     res.setHeader('Content-Type', 'application/pdf');
     res.send(Buffer.from(pdfBytes));
+    
+    console.log("[GET /download-pdf] PDF download complete.");
   } catch (err) {
     console.error(err);
     res.send("Error generating PDF: " + err.message);
