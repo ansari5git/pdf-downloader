@@ -1,86 +1,262 @@
-/* public/style.css */
+:root {
+    --gradient-start: #833ab4;
+    --gradient-middle: #fd1d1d;
+    --gradient-end: #fcb045;
+    --white: #ffffff;
+    --error-red: #ff3b30;
+    --button-blue: #0095f6;
+    --button-hover: #1877f2;
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --shadow: rgba(0, 0, 0, 0.1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 body {
-  font-family: Arial, sans-serif;
-  margin: 20px;
-  background: #f7f7f7;
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(45deg, var(--gradient-start), var(--gradient-middle), var(--gradient-end));
+    background-size: 200% 200%;
+    animation: gradientBG 15s ease infinite;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    color: var(--white);
+}
+
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
 .container {
-  max-width: 800px;
-  margin: 0 auto;
-  background: #fff;
-  padding: 20px;
-  border-radius: 8px;
+    width: 100%;
+    max-width: 800px;
+    text-align: center;
+    padding: 2.5rem;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px var(--shadow);
 }
 
-.input-section {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
+h1 {
+    color: var(--white);
+    font-size: 2.8rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-#pdfUrl {
-  flex: 1;
-  padding: 8px;
+.subtitle {
+    color: var(--white);
+    font-size: 1.2rem;
+    margin-bottom: 2.5rem;
+    opacity: 0.9;
+    font-weight: 500;
+}
+
+.input-container {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    display: flex;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--glass-border);
+    transition: all 0.3s ease;
+}
+
+.input-container:focus-within {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+}
+
+input {
+    flex: 1;
+    padding: 1.2rem;
+    border: none;
+    font-size: 1.1rem;
+    outline: none;
+    background: transparent;
+    color: var(--white);
+}
+
+input::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.paste-btn {
+    background: transparent;
+    border: none;
+    padding: 0 1.5rem;
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    border-left: 1px solid var(--glass-border);
+}
+
+.paste-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.paste-btn i {
+    font-size: 1.2rem;
+}
+
+.fetch-btn, .download-btn {
+    background: var(--button-blue);
+    color: var(--white);
+    border: none;
+    padding: 1.2rem 2.5rem;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    min-width: 180px;
+    box-shadow: 0 4px 12px rgba(0, 149, 246, 0.3);
+}
+
+.fetch-btn:hover, .download-btn:hover {
+    background: var(--button-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(24, 119, 242, 0.4);
 }
 
 .thumbnails-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, 150px);
-  gap: 10px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1.5rem;
+    margin: 2.5rem 0;
 }
 
 .thumbnails-grid img {
-  width: 100%;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+    width: 100%;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+}
+
+.thumbnails-grid img:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 .skeleton {
-  
-  width: 150px;
-  
-  height: 200px;
-  
-  background: #eee;
-  
-  border: 1px solid #ccc;
-  
-  border-radius: 4px;
-  
-  position: relative;
-
+    width: 180px;
+    height: 240px;
+    background: var(--glass-bg);
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    animation: pulse 1.5s infinite;
 }
 
-
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
 
 .loading-bar {
-  
-  position: absolute;
-  
-  bottom: 0; left: 0;
-  
-  height: 4px;
-  
-  background: #333;
-  
-  width: 0%;
-  
-  transition: width 0.5s;
-
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--button-blue), var(--button-hover));
+    width: 0%;
+    transition: width 0.5s ease;
 }
 
-/* Example: a simple spinning circle for loading */
+#loadingMessage {
+    color: var(--white);
+    margin: 2.5rem 0;
+    padding: 2rem;
+    background: var(--glass-bg);
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+}
+
 .loading-indicator {
-  width: 40px; 
-  height: 40px;
-  border: 5px solid #ccc;
-  border-top-color: #333;
-  border-radius: 50%;
-  margin: 0 auto;
-  animation: spin 1s linear infinite;
+    width: 48px;
+    height: 48px;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top-color: var(--white);
+    border-radius: 50%;
+    margin: 1.5rem auto;
+    animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+    to { transform: rotate(360deg); }
+}
+
+.error-message {
+    color: var(--error-red);
+    background: rgba(255, 255, 255, 0.95);
+    padding: 1rem;
+    border-radius: 12px;
+    margin-top: 1.5rem;
+    display: none;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+#downloadOptions {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    margin-top: 2.5rem;
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 1.5rem;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    .input-container {
+        flex-direction: column;
+    }
+
+    .paste-btn {
+        padding: 1rem;
+        border-top: 1px solid var(--glass-border);
+        border-left: none;
+    }
+
+    .fetch-btn, .download-btn {
+        width: 100%;
+        padding: 1rem;
+    }
+
+    #downloadOptions {
+        flex-direction: column;
+    }
+
+    .thumbnails-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 1rem;
+    }
 }

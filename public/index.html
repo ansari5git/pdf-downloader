@@ -1,41 +1,57 @@
-<!-- public/index.html -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>GDrive PDF Image Downloader</title>
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GDrive PDF Image Downloader</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <meta name="description" content="Extract and download images from Google Drive PDFs with ease">
 </head>
 <body>
-  <div class="container">
-    <h1>GDrive PDF Image Downloader</h1>
+    <div class="container">
+        <h1>GDrive PDF Image Downloader</h1>
+        <p class="subtitle">Transform your PDF into high-quality images in seconds</p>
 
-    <!-- Input for PDF URL -->
-    <div class="input-section">
-      <label for="pdfUrl">Enter Shared GDrive PDF Link:</label>
-      <input type="text" id="pdfUrl" placeholder="https://drive.google.com/file/d/..." />
-      <button id="fetchPagesBtn">Fetch Pages</button>
+        <div class="input-container" role="form">
+            <input 
+                type="text" 
+                id="pdfUrl" 
+                placeholder="Paste your Google Drive PDF link here..."
+                aria-label="Google Drive PDF URL input"
+            />
+            <button class="paste-btn" id="paste-btn" title="Paste from clipboard">
+                <i class="fas fa-paste"></i>
+                <span>Paste</span>
+            </button>
+        </div>
+
+        <button class="fetch-btn" id="fetchPagesBtn">
+            <span class="btn-text">Extract Images</span>
+            <div class="loading-spinner" aria-hidden="true"></div>
+        </button>
+
+        <div id="loadingMessage" style="display: none;" role="status" aria-live="polite">
+            <p>Processing your PDF</p>
+            <div class="loading-indicator"></div>
+            <p class="processing-text">Extracting high-quality images...</p>
+        </div>
+
+        <div id="thumbnails" class="thumbnails-grid" role="list" aria-label="Extracted images"></div>
+
+        <div id="downloadOptions" style="display:none;">
+            <button id="downloadZipBtn" class="download-btn">
+                <i class="fas fa-file-archive"></i> Download ZIP
+            </button>
+            <button id="downloadPdfBtn" class="download-btn">
+                <i class="fas fa-file-pdf"></i> Download PDF
+            </button>
+        </div>
+
+        <div id="error-message" class="error-message" role="alert"></div>
     </div>
 
-    <!-- A simple loading bar or message, hidden by default -->
-    
-    <div id="loadingMessage" style="display: none;">
-      
-      <p>Fetching... Please wait while we fetch your PDF Pages.</p>
-      
-      <div class="loading-indicator"></div>
-    
-    </div>
-
-    <!-- Thumbnails will appear here -->
-    <div id="thumbnails" class="thumbnails-grid"></div>
-
-    <!-- Download buttons (hidden until images load) -->
-    <div id="downloadOptions" style="display:none;">
-      <button id="downloadZipBtn">Download as ZIP</button>
-      <button id="downloadPdfBtn">Download as PDF</button>
-    </div>
-  </div>
-
-  <script src="script.js"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>
