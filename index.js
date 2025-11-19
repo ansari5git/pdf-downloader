@@ -44,7 +44,7 @@ async function extractPdfImages(pdfUrl) {
     console.log("[extractPdfImages] Launching Puppeteer...");
     browser = await puppeteer.launch({
     executablePath: '/usr/bin/google-chrome-stable',
-      headless: 'new',
+      headless: true,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
